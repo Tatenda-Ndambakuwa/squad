@@ -1,5 +1,10 @@
-"""Assortment of layers for use in models.py.
+#!/usr/bin/env python
+# coding: utf-8
 
+# In[ ]:
+
+
+"""Assortment of layers for use in models.py.
 Author:
     Chris Chute (chute@stanford.edu)
 """
@@ -14,10 +19,8 @@ from util import masked_softmax
 
 class Embedding(nn.Module):
     """Embedding layer used by BiDAF, without the character-level component.
-
     Word-level embeddings are further refined using a 2-layer Highway Encoder
     (see `HighwayEncoder` class for details).
-
     Args:
         word_vectors (torch.Tensor): Pre-trained word vectors.
         hidden_size (int): Size of hidden activations.
@@ -27,6 +30,7 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         self.drop_prob = drop_prob
         self.embed = nn.Embedding.from_pretrained(word_vectors)
+        self.weight.requires_grad=True
         self.proj = nn.Linear(word_vectors.size(1), hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
 
@@ -41,12 +45,10 @@ class Embedding(nn.Module):
 
 class HighwayEncoder(nn.Module):
     """Encode an input sequence using a highway network.
-
     Based on the paper:
     "Highway Networks"
     by Rupesh Kumar Srivastava, Klaus Greff, Jürgen Schmidhuber
     (https://arxiv.org/abs/1505.00387).
-
     Args:
         num_layers (int): Number of layers in the highway encoder.
         hidden_size (int): Size of hidden activations.
@@ -70,10 +72,8 @@ class HighwayEncoder(nn.Module):
 
 class RNNEncoder(nn.Module):
     """General-purpose layer for encoding a sequence using a bidirectional RNN.
-
     Encoded output is the RNN's hidden state at each position, which
     has shape `(batch_size, seq_len, hidden_size * 2)`.
-
     Args:
         input_size (int): Size of a single timestep in the input.
         hidden_size (int): Size of the RNN hidden state.
@@ -117,7 +117,6 @@ class RNNEncoder(nn.Module):
 
 class BiDAFAttention(nn.Module):
     """Bidirectional attention originally used by BiDAF.
-
     Bidirectional attention computes attention in two directions:
     The context attends to the query and the query attends to the context.
     The output of this layer is the concatenation of [context, c2q_attention,
@@ -125,7 +124,6 @@ class BiDAFAttention(nn.Module):
     the attention vector at each timestep, along with the embeddings from
     previous layers, to flow through the attention layer to the modeling layer.
     The output has shape (batch_size, context_len, 8 * hidden_size).
-
     Args:
         hidden_size (int): Size of hidden activations.
         drop_prob (float): Probability of zero-ing out activations.
@@ -161,11 +159,9 @@ class BiDAFAttention(nn.Module):
     def get_similarity_matrix(self, c, q):
         """Get the "similarity matrix" between context and query (using the
         terminology of the BiDAF paper).
-
         A naive implementation as described in BiDAF would concatenate the
         three vectors then project the result with a single weight matrix. This
         method is a more memory-efficient implementation of the same operation.
-
         See Also:
             Equation 1 in https://arxiv.org/abs/1611.01603
         """
@@ -175,8 +171,7 @@ class BiDAFAttention(nn.Module):
 
         # Shapes: (batch_size, c_len, q_len)
         s0 = torch.matmul(c, self.c_weight).expand([-1, -1, q_len])
-        s1 = torch.matmul(q, self.q_weight).transpose(1, 2)\
-                                           .expand([-1, c_len, -1])
+        s1 = torch.matmul(q, self.q_weight).transpose(1, 2)                                           .expand([-1, c_len, -1])
         s2 = torch.matmul(c * self.cq_weight, q.transpose(1, 2))
         s = s0 + s1 + s2 + self.bias
 
@@ -185,13 +180,11 @@ class BiDAFAttention(nn.Module):
 
 class BiDAFOutput(nn.Module):
     """Output layer used by BiDAF for question answering.
-
     Computes a linear transformation of the attention and modeling
     outputs, then takes the softmax of the result to get the start pointer.
     A bidirectional LSTM is then applied the modeling output to produce `mod_2`.
     A second linear+softmax of the attention output and `mod_2` is used
     to get the end pointer.
-
     Args:
         hidden_size (int): Hidden size used in the BiDAF model.
         drop_prob (float): Probability of zero-ing out activations.
@@ -220,3 +213,4 @@ class BiDAFOutput(nn.Module):
         log_p2 = masked_softmax(logits_2.squeeze(), mask, log_softmax=True)
 
         return log_p1, log_p2
+
