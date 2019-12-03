@@ -30,7 +30,7 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         self.drop_prob = drop_prob
         self.embed = nn.Embedding.from_pretrained(word_vectors)
-        self.weight.requires_grad=True
+        self.embed.weight.requires_grad=True
         self.proj = nn.Linear(word_vectors.size(1), hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
 
